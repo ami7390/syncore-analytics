@@ -1,0 +1,2 @@
+import Analyzer from "@/components/analyzer";
+export default function Home(){return <main className="wrap"><section className="hero"><div className="chip" style={{display:"inline-block",marginBottom:20}}>Performance web · Analyse gratuite</div><h1>Comprenez la performance<br/>de votre site web.</h1><p>Analysez la vitesse, l'accessibilité et le SEO technique de votre site grâce aux mesures réelles de Google PageSpeed Insights.</p></section><section className="section"><Analyzer/></section></main>}

@@ -1,0 +1,1 @@
+export default function Unauthorized(){return <main className="wrap section"><div className="panel"><h1>Accès non autorisé</h1><p>Ce compte ne possède pas le rôle administrateur. Contactez votre administrateur.</p><a className="btn" href="/">Retour à l'accueil</a></div></main>}

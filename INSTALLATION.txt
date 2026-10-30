@@ -1,0 +1,14 @@
+CORRECTIF GRATUIT SYNC0RE ANALYTICS V1
+
+Copier uniquement :
+- app/api/analyze/route.ts
+- components/analyzer.tsx
+
+Dans C:\Next.js\syncore-analytics, remplacer les deux fichiers aux memes chemins.
+Arreter le serveur avec Ctrl+C puis executer : npm run dev
+Tester avec une URL publique.
+
+Ce correctif n'ajoute aucun service payant et ne change pas le design.
+Il ne supprime PAS la limite quotidienne imposee par Google.
+Le cache de 6 heures et la limite de 5 nouvelles analyses/heure sont uniquement en memoire et par instance : ils ne sont pas partages ni persistants sur Vercel.
+Une premiere analyse reste impossible si Google refuse deja toutes les requetes.
