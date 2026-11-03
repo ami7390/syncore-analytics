@@ -1,2 +1,7 @@
-import {createBrowserClient} from "@supabase/ssr";
-export function supabaseBrowser(){return createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!)}
+import { createBrowserClient } from "@supabase/ssr";
+import { supabasePublicConfig } from "@/lib/supabase/config";
+
+export function supabaseBrowser() {
+  const { url, key } = supabasePublicConfig();
+  return createBrowserClient(url, key);
+}

@@ -1,1 +1,9 @@
-"use client";import {supabaseBrowser} from "@/lib/supabase/browser";import {useRouter} from "next/navigation";export default function Logout(){const router=useRouter();return <button className="btn secondary" onClick={async()=>{await supabaseBrowser().auth.signOut();router.push("/login");router.refresh()}}>Se déconnecter</button>}
+"use client";
+import { useRouter } from "next/navigation";
+export default function Logout() {
+  const router = useRouter();
+  return <button className="btn secondary" onClick={async () => {
+    const response = await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+    if (response.ok) { router.replace("/login"); router.refresh(); }
+  }}>Se déconnecter</button>;
+}
