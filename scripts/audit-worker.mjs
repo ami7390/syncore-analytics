@@ -6,6 +6,7 @@ import { promisify } from 'node:util';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { detectPerformanceDrop, deliverPendingAlerts } from './telegram-alerts.mjs';
 
 const exec = promisify(execFile);
 const MAX_JOBS_PER_RUN = 3;
@@ -110,6 +111,11 @@ async function processJob(job) {
       status: 'completed', result, error: null, completed_at: new Date().toISOString(),
     }).eq('id', job.id).eq('status', 'running');
     if (saveError) throw saveError;
+    try {
+      await detectPerformanceDrop(db, job, result);
+    } catch (alertError) {
+      console.error('Alert detection failed (audit preserved):', job.id, alertError);
+    }
     console.log('Audit completed:', job.id);
     return 'completed';
   } catch (err) {
@@ -127,11 +133,12 @@ async function processJob(job) {
 
 async function main() {
   const { data: jobs, error } = await db.from('audit_jobs')
-    .select('id,url,strategy').eq('status', 'pending')
+    .select('id,url,strategy,created_at').eq('status', 'pending')
     .order('created_at', { ascending: true }).limit(MAX_JOBS_PER_RUN);
   if (error) throw error;
   if (!jobs?.length) {
     console.log('No pending jobs');
+    await deliverPendingAlerts(db);
     return;
   }
   const counts = { completed: 0, failed: 0, skipped: 0 };
@@ -140,6 +147,7 @@ async function main() {
     counts[outcome]++;
   }
   console.log('Bilan:', JSON.stringify(counts));
+  await deliverPendingAlerts(db);
 }
 
 await main();
