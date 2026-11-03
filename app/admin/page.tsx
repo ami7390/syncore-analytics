@@ -189,6 +189,17 @@ export default async function Admin() {
           </section>
         )}
 
+        {/* Sites supervisés : droits appliqués par les API */}
+        <section style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 20, background: "var(--card)" }}>
+          <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Gestion des sites</h2>
+          <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>
+            {isOwner ? "Ajoutez les sites Syncore et attribuez-les aux administrateurs." : role === "director" ? "Consultez tous les sites supervisés." : "Consultez les sites qui vous sont attribués."}
+          </p>
+          <Link href="/admin/sites" className="btn" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+            {role === "director" ? "Consulter les sites" : "Gérer les sites"} →
+          </Link>
+        </section>
+
         {/* Modules à venir */}
         <section
           style={{
