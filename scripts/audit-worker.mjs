@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -7,11 +6,11 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { detectPerformanceDrop, deliverPendingAlerts } from './telegram-alerts.mjs';
+import { startAuditProxy, resolvePublicHost } from './audit-proxy.mjs';
 
 const exec = promisify(execFile);
 const MAX_JOBS_PER_RUN = 3;
 const AUDIT_TIMEOUT_MS = 125_000;
-const ALLOWED_AUDIT_HOSTS = new Set(['example.com']);
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -22,33 +21,18 @@ const db = createClient(supabaseUrl, serviceRoleKey, {
   auth: { persistSession: false },
 });
 
-function publicIp(ip) {
-  if (isIP(ip) !== 4) return false;
-  const a = ip.split('.').map(Number);
-  return !(
-    a[0] === 0 || a[0] === 10 || a[0] === 127 || a[0] >= 224 ||
-    (a[0] === 169 && a[1] === 254) ||
-    (a[0] === 172 && a[1] >= 16 && a[1] <= 31) ||
-    (a[0] === 192 && a[1] === 168) ||
-    (a[0] === 100 && a[1] >= 64 && a[1] <= 127) ||
-    (a[0] === 192 && a[1] === 0) ||
-    (a[0] === 198 && [18, 19].includes(a[1]))
-  );
-}
-
 async function validate(raw) {
   let u;
-  try { u = new URL(raw); }
-  catch { throw new Error('URL invalide'); }
+  try { u = new URL(raw); } catch { throw new Error('URL invalide'); }
   const hostname = u.hostname.toLowerCase().replace(/\.$/, '');
   if (u.protocol !== 'https:' || u.username || u.password || u.port ||
-      isIP(hostname) || !ALLOWED_AUDIT_HOSTS.has(hostname)) {
-    throw new Error('URL interdite');
-  }
-  const ips = await lookup(hostname, { all: true, family: 4 });
-  if (!ips.length || ips.some(({ address }) => !publicIp(address))) {
-    throw new Error('Adresse interdite');
-  }
+      isIP(hostname) || u.hash) throw new Error('URL interdite');
+  await resolvePublicHost(hostname);
+  // Explicit allowlist: only active sites registered by the owner.
+  const { data, error } = await db.from('monitored_sites')
+    .select('id').eq('url', u.toString()).eq('active', true).limit(1);
+  if (error) throw error;
+  if (!data?.length && u.toString() !== 'https://example.com/') throw new Error('Site non enregistre ou inactif');
 }
 
 async function processJob(job) {
@@ -62,21 +46,22 @@ async function processJob(job) {
   }
 
   let dir;
+  let proxy;
   try {
     await validate(job.url);
     if (!['mobile', 'desktop'].includes(job.strategy)) throw new Error('Strategie invalide');
+    proxy = await startAuditProxy();
     dir = await mkdtemp(join(tmpdir(), 'syncore-audit-'));
     const reportPath = join(dir, 'report.json');
     const args = [
       'lighthouse', job.url, '--output=json',
       `--output-path=${reportPath}`,
-      '--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage',
+      `--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage --proxy-server=http=127.0.0.1:${proxy.port} --proxy-bypass-list=<-loopback>` ,
       '--quiet', '--only-categories=performance,accessibility,best-practices,seo',
       '--max-wait-for-load=45000',
     ];
     if (job.strategy === 'desktop') args.push('--preset=desktop');
-    // Private testing only: DNS validation does NOT constrain Chromium redirects,
-    // subresource requests or DNS rebinding. Do not enable arbitrary public URLs.
+    // Chromium HTTP(S) traffic is restricted by the local proxy, including redirects.
     await exec('npx', args, { timeout: AUDIT_TIMEOUT_MS, maxBuffer: 1024 * 1024 });
     const lhr = JSON.parse(await readFile(reportPath, 'utf8'));
     if (!lhr.categories) throw new Error('Rapport Lighthouse incomplet');
@@ -128,6 +113,7 @@ async function processJob(job) {
     return 'failed';
   } finally {
     if (dir) await rm(dir, { recursive: true, force: true });
+    if (proxy) await proxy.close();
   }
 }
 
