@@ -54,12 +54,15 @@ async function processJob(job) {
     dir = await mkdtemp(join(tmpdir(), 'syncore-audit-'));
     const reportPath = join(dir, 'report.json');
     const args = [
-      'lighthouse', job.url, '--output=json',
-      `--output-path=${reportPath}`,
-      `--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage --proxy-server=http=127.0.0.1:${proxy.port} --proxy-bypass-list=<-loopback>` ,
-      '--quiet', '--only-categories=performance,accessibility,best-practices,seo',
-      '--max-wait-for-load=45000',
-    ];
+  'lighthouse', job.url,
+  '--output=json',
+  `--output-path=${reportPath}`,
+  `--chrome-flags=--headless --no-sandbox --disable-dev-shm-usage --proxy-server=http=127.0.0.1:${proxy.port} --proxy-bypass-list=<-loopback>`,
+  '--locale=fr',
+  '--quiet',
+  '--only-categories=performance,accessibility,best-practices,seo',
+  '--max-wait-for-load=45000',
+];
     if (job.strategy === 'desktop') args.push('--preset=desktop');
     // Chromium HTTP(S) traffic is restricted by the local proxy, including redirects.
     await exec('npx', args, { timeout: AUDIT_TIMEOUT_MS, maxBuffer: 1024 * 1024 });
