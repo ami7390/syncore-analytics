@@ -2,6 +2,25 @@
 const TELEGRAM_API = 'https://api.telegram.org';
 const THRESHOLD = Math.max(1, Math.min(100, Number(process.env.PERFORMANCE_ALERT_DROP_POINTS || 15) || 15));
 
+export function isPerformanceDrop(previous, current) {
+  return Number.isFinite(previous) && Number.isFinite(current) &&
+    previous >= 0 && previous <= 100 && current >= 0 && current <= 100 &&
+    previous - current >= THRESHOLD;
+}
+
+export async function sendTelegramMessage(text) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) throw new Error('Secrets Telegram manquants');
+  const response = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text }),
+    signal: AbortSignal.timeout(12000),
+  });
+  const payload = await response.json();
+  if (!response.ok || !payload.ok) throw new Error(`Telegram HTTP ${response.status}`);
+}
+
 export async function detectPerformanceDrop(db, job, result) {
   const current = result?.scores?.performance;
   if (typeof current !== 'number') return;
@@ -12,7 +31,7 @@ export async function detectPerformanceDrop(db, job, result) {
     .order('created_at', { ascending: false }).limit(1);
   if (error) throw error;
   const previous = prior?.[0]?.result?.scores?.performance;
-  if (typeof previous !== 'number' || previous - current < THRESHOLD) return;
+  if (!isPerformanceDrop(previous, current)) return;
   const { error: insertError } = await db.from('performance_alerts').upsert({
     audit_job_id: job.id, url: job.url, strategy: job.strategy,
     previous_score: previous, current_score: current, status: 'pending',
@@ -46,13 +65,7 @@ export async function deliverPendingAlerts(db) {
       'Consultez Syncore Analytics pour analyser le problème.',
     ].join('\n');
     try {
-      const response = await fetch(`${TELEGRAM_API}/bot${token}/sendMessage`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, text }),
-        signal: AbortSignal.timeout(12000),
-      });
-      const payload = await response.json();
-      if (!response.ok || !payload.ok) throw new Error(`Telegram HTTP ${response.status}`);
+      await sendTelegramMessage(text);
       const { error: updateError } = await db.from('performance_alerts')
         .update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', alert.id);
       if (updateError) throw updateError;
