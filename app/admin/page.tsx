@@ -200,6 +200,12 @@ export default async function Admin() {
           </Link>
         </section>
 
+        <section style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 20, background: "var(--card)" }}>
+          <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>GA4 · Search Console · Clarity</h2>
+          <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>Consultez les statistiques des sites supervisés et leurs sources de trafic.</p>
+          <Link href="/admin/integrations" className="btn" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>Ouvrir les intégrations →</Link>
+        </section>
+
         {/* Modules à venir */}
         <section
           style={{
