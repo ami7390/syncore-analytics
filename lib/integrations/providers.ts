@@ -58,7 +58,7 @@ async function googleJson(url: string, token: string, body: object) {
 export async function ga4(propertyId: string, days: number) {
   if (!/^\d{4,20}$/.test(propertyId)) throw new Error("Identifiant de propriété GA4 invalide");
   const token = await googleToken(["https://www.googleapis.com/auth/analytics.readonly"]);
-  const dateRanges = [{ startDate: `${days}daysAgo`, endDate: "yesterday" }];
+  const dateRanges = [{ startDate: `${days - 1}daysAgo`, endDate: "today" }];
   const base = `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}:runReport`;
   const [totals, daily] = await Promise.all([
     googleJson(base, token, { dateRanges, metrics: [{ name: "activeUsers" }, { name: "sessions" }, { name: "screenPageViews" }, { name: "conversions" }] }),
