@@ -23,7 +23,28 @@ async function googleToken(scopes: string[]) {
   const signer = createSign("RSA-SHA256"); signer.update(input); signer.end();
   const assertion = `${input}.${signer.sign(key).toString("base64url")}`;
   const response = await fetch("https://oauth2.googleapis.com/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer", assertion }), signal: AbortSignal.timeout(12000), cache: "no-store" });
-  if (!response.ok) throw new Error(`Authentification Google refusée (${response.status})`);
+ if (!response.ok) {
+  const errorBody: unknown = await response.json().catch(() => null);
+
+  const googleError =
+    errorBody && typeof errorBody === "object"
+      ? errorBody as { error?: unknown; error_description?: unknown }
+      : {};
+
+  const errorCode =
+    typeof googleError.error === "string"
+      ? googleError.error
+      : "unknown";
+
+  const errorDescription =
+    typeof googleError.error_description === "string"
+      ? googleError.error_description
+      : "Aucune description fournie";
+
+  throw new Error(
+    `Authentification Google refusée (${response.status}) : ${errorCode} - ${errorDescription}`
+  );
+}
   const json: unknown = await response.json();
   const token = (json as { access_token?: unknown }).access_token;
   if (typeof token !== "string") throw new Error("Jeton Google manquant");
