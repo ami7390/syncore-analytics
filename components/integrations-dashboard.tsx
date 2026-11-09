@@ -31,22 +31,36 @@ const dayLabel = (value: unknown) => {
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return `${raw.slice(8, 10)}/${raw.slice(5, 7)}`;
   return raw;
 };
-function clarityMetrics(data: unknown): { label: string; value: string }[] {
+const clarityNames: Record<string, { title: string; detail: string }> = {
+  DeadClickCount: { title: "Clics sans effet", detail: "Clics sans réaction apparente" },
+  RageClickCount: { title: "Clics de frustration", detail: "Clics répétés rapidement" },
+  ExcessiveScroll: { title: "Défilement excessif", detail: "Sessions avec défilement excessif" },
+  QuickbackClick: { title: "Retours rapides", detail: "Retours rapides après navigation" },
+  ScriptErrorCount: { title: "Erreurs JavaScript", detail: "Sessions avec erreurs de script" },
+};
+const clarityFieldNames: Record<string, string> = {
+  sessionsCount: "Sessions analysées",
+  sessionsWithMetricPercentage: "Sessions concernées (%)",
+  sessionsWithoutMetricPercentage: "Sessions non concernées (%)",
+  pagesViews: "Pages vues",
+  subTotal: "Total des événements",
+};
+type ClaritySection = { key: string; title: string; detail: string; fields: { label: string; key: string; value: string }[] };
+function claritySections(data: unknown): ClaritySection[] {
   const sections = Array.isArray(data) ? data : asArray(asObject(data)?.data);
-  const metrics: { label: string; value: string }[] = [];
-  for (const section of sections) {
+  return sections.flatMap((section, index) => {
     const item = asObject(section);
-    if (!item || typeof item.metricName !== "string") continue;
-    for (const entry of asArray(item.information).slice(0, 8)) {
-      const fields = asObject(entry);
-      if (!fields) continue;
-      for (const [key, value] of Object.entries(fields)) {
-        if (typeof value !== "string" && typeof value !== "number") continue;
-        metrics.push({ label: `${item.metricName} · ${key}`, value: String(value) });
-      }
-    }
-  }
-  return metrics.slice(0, 24);
+    if (!item || typeof item.metricName !== "string") return [];
+    const key = item.metricName;
+    const known = clarityNames[key];
+    const fields = asArray(item.information).flatMap((entry, entryIndex) => {
+      const record = asObject(entry);
+      if (!record) return [];
+      return Object.entries(record).filter(([, value]) => typeof value === "string" || typeof value === "number")
+        .map(([field, value]) => ({ key: `${entryIndex}-${field}`, label: clarityFieldNames[field] ?? field, value: String(value) }));
+    });
+    return [{ key: `${index}-${key}`, title: known?.title ?? key, detail: known?.detail ?? "Indicateur Microsoft Clarity", fields }];
+  });
 }
 
 function DailyTable({ rows, provider }: { rows: RecordValue[]; provider: "ga4" | "search-console" }) {
@@ -148,7 +162,7 @@ export default function IntegrationsDashboard() {
   const totals = asArray(data?.totals)[0];
   const daily = asArray(data?.daily).map(asObject).filter((v): v is RecordValue => v !== null);
   const queries = asArray(data?.queries).map(asObject).filter((v): v is RecordValue => v !== null);
-  const clarityItems = useMemo(() => clarityMetrics(result), [result]);
+  const clarityItems = useMemo(() => claritySections(result), [result]);
   const gaValues = [0, 1, 2, 3].map(i => metricValue(totals, i));
   const gaHasData = gaValues.some(v => v !== null);
   const gscClicks = daily.reduce((sum, r) => sum + (numeric(r.clicks) ?? 0), 0);
@@ -204,7 +218,23 @@ export default function IntegrationsDashboard() {
     </>}
 
     {!loading && !error && result !== null && provider === "clarity" && <>
-      {clarityItems.length > 0 ? <><div className="sa-clarity-grid">{clarityItems.map((item, i) => <div className="sa-clarity-item" key={`${item.label}-${i}`}><span>{item.label}</span><strong>{item.value}</strong></div>)}</div><div className="sa-insight"><span className="sa-insight-icon" aria-hidden="true">✦</span><div><strong>À savoir</strong><p>Les libellés proviennent de Microsoft Clarity. Sa période de collecte peut différer de la période sélectionnée.</p></div></div></> : <EmptyState title="Aucun indicateur reconnu" message="Clarity a répondu, mais aucun indicateur reconnu n’a pu être présenté. Aucune donnée n’a été inventée." />}
+      {clarityItems.length > 0 ? <>
+        <div className="sa-clarity-grid">{clarityItems.map((item) => {
+          const percentage = item.fields.find(field => field.key.endsWith("-sessionsWithMetricPercentage"));
+          const sessions = item.fields.find(field => field.key.endsWith("-sessionsCount"));
+          return <section className="sa-clarity-item" key={item.key}>
+            <span className="sa-clarity-kicker">COMPORTEMENT UTILISATEUR</span>
+            <h3>{item.title}</h3>
+            <p className="sa-clarity-description">{item.detail}</p>
+            <strong className="sa-clarity-primary">{percentage ? `${percentage.value} %` : "—"}</strong>
+            <span className="sa-clarity-subtitle">Sessions concernées{sessions ? ` · ${sessions.value} session(s) analysée(s)` : ""}</span>
+            <details className="sa-clarity-details"><summary>Voir les valeurs détaillées</summary>
+              <dl>{item.fields.map(field => <div key={field.key}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
+            </details>
+          </section>;
+        })}</div>
+        <div className="sa-insight"><span className="sa-insight-icon" aria-hidden="true">✦</span><div><strong>À savoir</strong><p>Les pourcentages et les nombres de sessions affichés sont ceux fournis par Microsoft Clarity pour chaque indicateur. Ils ne représentent pas nécessairement le trafic total du site. La période de collecte Clarity peut différer de la période sélectionnée.</p></div></div>
+      </> : <EmptyState title="Aucun indicateur reconnu" message="Clarity a répondu, mais aucun indicateur reconnu n’a pu être présenté. Aucune donnée n’a été inventée." />}
       <details className="sa-panel"><summary style={{cursor:"pointer",fontWeight:700}}>Réponse détaillée Microsoft Clarity</summary><pre style={{overflowX:"auto",whiteSpace:"pre-wrap",overflowWrap:"anywhere",fontSize:12,marginTop:16}}>{JSON.stringify(result, null, 2)}</pre></details>
     </>}
 
@@ -220,7 +250,7 @@ export default function IntegrationsDashboard() {
       .sa-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}.sa-metrics-three{grid-template-columns:repeat(3,minmax(0,1fr))}.sa-metric{background:#fff;border:1px solid var(--sa-border);border-radius:17px;padding:23px 21px;box-shadow:0 7px 22px rgba(29,56,92,.045);min-width:0}.sa-metric-mark{width:31px;height:5px;border-radius:10px;margin-bottom:22px}.sa-blue{background:#477bf0}.sa-violet{background:#9473ed}.sa-teal{background:#2dbda7}.sa-amber{background:#f1b45c}.sa-metric-label{font-size:12px;color:#687b95;font-weight:700}.sa-metric-value{font-size:clamp(25px,3vw,36px);font-weight:800;letter-spacing:-1px;color:#172e50;margin:12px 0 8px;overflow-wrap:anywhere}.sa-metric-description{font-size:11px;color:#8a98aa;line-height:1.5}
       .sa-insight{display:flex;align-items:flex-start;gap:14px;padding:19px 21px;border:1px solid #dce9fb;background:#f5f9ff;border-radius:14px}.sa-insight-icon{display:grid;place-items:center;flex-shrink:0;width:32px;height:32px;border-radius:10px;background:#e4edff;color:#3c6dcc;font-size:19px}.sa-insight strong{font-size:12px;color:#254c83}.sa-insight p{font-size:12px;line-height:1.7;color:#617b9b;margin:5px 0 0}
       .sa-panel{background:#fff;border:1px solid var(--sa-border);border-radius:17px;padding:23px;box-shadow:0 7px 22px rgba(29,56,92,.04);min-width:0}.sa-panel-head{display:flex;justify-content:space-between;gap:15px;align-items:start;margin-bottom:24px}.sa-panel-head h3{margin:0 0 7px;color:#1a3154;font-size:16px}.sa-panel-head p{margin:0;color:var(--sa-muted);font-size:12px}.sa-panel-tag{font-size:11px;color:#6c85a9;background:#f1f5fb;padding:7px 10px;border-radius:8px;white-space:nowrap}.sa-chart{height:190px;display:flex;align-items:end;gap:4px;border-bottom:1px solid #dfe7f1;padding:0 2px}.sa-chart-column{flex:1;height:100%;min-width:0;display:flex;align-items:end}.sa-chart-bar{background:linear-gradient(180deg,#497ef0,#9cbcff);border-radius:5px 5px 0 0;width:100%;min-height:3px}.sa-chart-axis{display:flex;justify-content:space-between;font-size:11px;color:#8290a3;margin-top:11px}.sa-table-wrap{overflow-x:auto}.sa-table{border-collapse:collapse;width:100%;min-width:570px;font-size:12px;text-align:left}.sa-table th{color:#7a8ca5;background:#f6f8fc;font-weight:750}.sa-table th,.sa-table td{padding:13px 12px;border-bottom:1px solid #edf1f6}.sa-table td{color:#354b68;overflow-wrap:anywhere}.sa-table tr:last-child td{border-bottom:0}
-      .sa-clarity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.sa-clarity-item{background:#fff;border:1px solid var(--sa-border);border-radius:14px;padding:20px;display:grid;gap:13px;min-width:0}.sa-clarity-item span{font-size:12px;color:#72849d;overflow-wrap:anywhere}.sa-clarity-item strong{font-size:19px;color:#193454;overflow-wrap:anywhere}.sa-empty{background:#fff;border:1px dashed #cfdbeb;border-radius:17px;text-align:center;padding:46px 22px;display:grid;justify-items:center;gap:10px}.sa-empty-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#edf4ff;color:#3d6bb5;font-size:21px;font-family:serif;font-weight:bold}.sa-empty strong{font-size:16px;color:#253e60}.sa-empty p{margin:0;max-width:540px;color:#7a8ba2;line-height:1.7;font-size:13px}.sa-loading{padding:32px;text-align:center;color:#6a7e99;font-size:13px}.sa-spinner{display:inline-block;width:15px;height:15px;border:2px solid #dce6f7;border-top-color:#3d70df;border-radius:50%;vertical-align:-3px;margin-right:8px;animation:sa-spin .8s linear infinite}@keyframes sa-spin{to{transform:rotate(360deg)}}.sa-footnote{font-size:11px;color:#8996a7;line-height:1.7;margin:0;padding-bottom:5px}
+      .sa-clarity-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.sa-clarity-item{background:#fff;border:1px solid var(--sa-border);border-radius:14px;padding:20px;display:grid;gap:13px;min-width:0}.sa-clarity-item span{font-size:12px;color:#72849d;overflow-wrap:anywhere}.sa-clarity-item strong{font-size:19px;color:#193454;overflow-wrap:anywhere}.sa-clarity-item h3{font-size:16px;line-height:1.35;margin:0;color:#193454}.sa-clarity-kicker{font-size:9px!important;font-weight:800;letter-spacing:1.2px;color:#5176b5!important}.sa-clarity-description{font-size:12px;color:#73849b;margin:0;line-height:1.5}.sa-clarity-primary{font-size:32px!important;letter-spacing:-1px;color:#3267e9!important}.sa-clarity-subtitle{font-size:11px!important}.sa-clarity-details{border-top:1px solid #e7ecf3;padding-top:12px}.sa-clarity-details summary{font-size:12px;font-weight:700;color:#3267e9;cursor:pointer}.sa-clarity-details dl{margin:12px 0 0;display:grid;gap:10px}.sa-clarity-details dl div{display:flex;justify-content:space-between;gap:10px}.sa-clarity-details dt,.sa-clarity-details dd{font-size:11px;margin:0;color:#60738d}.sa-clarity-details dd{font-weight:750;color:#1b3559;text-align:right}.sa-empty{background:#fff;border:1px dashed #cfdbeb;border-radius:17px;text-align:center;padding:46px 22px;display:grid;justify-items:center;gap:10px}.sa-empty-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#edf4ff;color:#3d6bb5;font-size:21px;font-family:serif;font-weight:bold}.sa-empty strong{font-size:16px;color:#253e60}.sa-empty p{margin:0;max-width:540px;color:#7a8ba2;line-height:1.7;font-size:13px}.sa-loading{padding:32px;text-align:center;color:#6a7e99;font-size:13px}.sa-spinner{display:inline-block;width:15px;height:15px;border:2px solid #dce6f7;border-top-color:#3d70df;border-radius:50%;vertical-align:-3px;margin-right:8px;animation:sa-spin .8s linear infinite}@keyframes sa-spin{to{transform:rotate(360deg)}}.sa-footnote{font-size:11px;color:#8996a7;line-height:1.7;margin:0;padding-bottom:5px}
       @media(max-width:900px){.sa-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.sa-clarity-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sa-hero{padding:26px}.sa-hero-detail{min-width:170px}}
       @media(max-width:600px){.sa-dashboard{gap:19px}.sa-hero{flex-direction:column;align-items:stretch;padding:24px 20px;border-radius:16px}.sa-hero-detail{max-width:none}.sa-toolbar{padding:15px}.sa-field{flex-basis:100%}.sa-refresh{width:100%}.sa-tabs{width:100%}.sa-tab{flex:1 1 100%;padding:10px 8px;font-size:11px}.sa-section-heading h2{font-size:20px}.sa-metrics,.sa-metrics-three,.sa-clarity-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.sa-metric{padding:17px 14px}.sa-metric-value{font-size:26px}.sa-panel{padding:16px}.sa-panel-tag{display:none}}
       @media(max-width:380px){.sa-metrics,.sa-metrics-three,.sa-clarity-grid{grid-template-columns:1fr}}
