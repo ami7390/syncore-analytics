@@ -37,6 +37,17 @@ const clarityNames: Record<string, { title: string; detail: string }> = {
   ExcessiveScroll: { title: "Défilement excessif", detail: "Sessions avec défilement excessif" },
   QuickbackClick: { title: "Retours rapides", detail: "Retours rapides après navigation" },
   ScriptErrorCount: { title: "Erreurs JavaScript", detail: "Sessions avec erreurs de script" },
+  ErrorClickCount: { title: "Clics sur erreur", detail: "Clics ayant entraîné une erreur" },
+  ScrollDepth: { title: "Profondeur de défilement", detail: "Profondeur moyenne du défilement" },
+  Traffic: { title: "Trafic", detail: "Sessions et utilisateurs mesurés" },
+  EngagementTime: { title: "Temps d’engagement", detail: "Durées transmises par Clarity" },
+  Browser: { title: "Navigateurs", detail: "Répartition par navigateur" },
+  Device: { title: "Appareils", detail: "Répartition par appareil" },
+  OS: { title: "Systèmes d’exploitation", detail: "Répartition par système" },
+  Country: { title: "Pays", detail: "Répartition géographique" },
+  PageTitle: { title: "Titres des pages", detail: "Pages consultées" },
+  ReferrerUrl: { title: "Sources de trafic", detail: "Sites référents" },
+  PopularPages: { title: "Pages populaires", detail: "Pages consultées fréquemment" },
 };
 const clarityFieldNames: Record<string, string> = {
   sessionsCount: "Sessions analysées",
@@ -44,8 +55,44 @@ const clarityFieldNames: Record<string, string> = {
   sessionsWithoutMetricPercentage: "Sessions non concernées (%)",
   pagesViews: "Pages vues",
   subTotal: "Total des événements",
+  totalSessionCount: "Sessions humaines",
+  totalBotSessionCount: "Sessions de robots",
+  distinctUserCount: "Utilisateurs uniques",
+  averageScrollDepth: "Profondeur moyenne de défilement",
+  totalTime: "Temps total",
+  activeTime: "Temps actif",
 };
-type ClaritySection = { key: string; title: string; detail: string; fields: { label: string; key: string; value: string }[] };
+type ClarityField = { label: string; key: string; value: string; raw: unknown };
+type ClaritySection = { key: string; metricName: string; title: string; detail: string; fields: ClarityField[] };
+
+function clarityDisplay(section: ClaritySection): { primary: string; subtitle: string } {
+  const field = (name: string) => section.fields.find(item => item.key.endsWith(`-${name}`));
+  const value = (name: string) => field(name)?.value;
+  const available = (name: string) => {
+    const raw = field(name)?.raw;
+    return raw !== null && raw !== undefined && raw !== "" && typeof raw !== "object";
+  };
+  const percentageMetrics = ["DeadClickCount", "ExcessiveScroll", "RageClickCount", "QuickbackClick", "ScriptErrorCount", "ErrorClickCount"];
+  if (percentageMetrics.includes(section.metricName)) {
+    return {
+      primary: available("sessionsWithMetricPercentage") ? `${value("sessionsWithMetricPercentage")} %` : "—",
+      subtitle: `Sessions concernées${available("sessionsCount") ? ` · ${value("sessionsCount")} session(s) analysée(s)` : ""}`,
+    };
+  }
+  if (section.metricName === "Traffic") return {
+    primary: available("totalSessionCount") ? value("totalSessionCount")! : "—",
+    subtitle: `Sessions humaines${available("distinctUserCount") ? ` · ${value("distinctUserCount")} utilisateur(s) unique(s)` : ""}`,
+  };
+  if (section.metricName === "ScrollDepth") return {
+    primary: available("averageScrollDepth") ? `${value("averageScrollDepth")} %` : "—",
+    subtitle: "Profondeur moyenne de défilement",
+  };
+  if (section.metricName === "EngagementTime") return {
+    primary: available("activeTime") ? value("activeTime")! : available("totalTime") ? value("totalTime")! : "—",
+    subtitle: available("activeTime") ? "Temps actif (unité fournie par Clarity)" : "Temps total (unité fournie par Clarity)",
+  };
+  return { primary: "—", subtitle: "Voir les valeurs détaillées" };
+}
 function claritySections(data: unknown): ClaritySection[] {
   const sections = Array.isArray(data) ? data : asArray(asObject(data)?.data);
   return sections.flatMap((section, index) => {
@@ -56,10 +103,14 @@ function claritySections(data: unknown): ClaritySection[] {
     const fields = asArray(item.information).flatMap((entry, entryIndex) => {
       const record = asObject(entry);
       if (!record) return [];
-      return Object.entries(record).filter(([, value]) => typeof value === "string" || typeof value === "number")
-        .map(([field, value]) => ({ key: `${entryIndex}-${field}`, label: clarityFieldNames[field] ?? field, value: String(value) }));
+      return Object.entries(record).map(([field, value]) => ({
+        key: `${entryIndex}-${field}`,
+        label: clarityFieldNames[field] ?? field,
+        value: value === null || value === undefined ? "—" : typeof value === "object" ? JSON.stringify(value) : String(value),
+        raw: value,
+      }));
     });
-    return [{ key: `${index}-${key}`, title: known?.title ?? key, detail: known?.detail ?? "Indicateur Microsoft Clarity", fields }];
+    return [{ key: `${index}-${key}`, metricName: key, title: known?.title ?? key, detail: known?.detail ?? "Indicateur Microsoft Clarity", fields }];
   });
 }
 
@@ -220,14 +271,13 @@ export default function IntegrationsDashboard() {
     {!loading && !error && result !== null && provider === "clarity" && <>
       {clarityItems.length > 0 ? <>
         <div className="sa-clarity-grid">{clarityItems.map((item) => {
-          const percentage = item.fields.find(field => field.key.endsWith("-sessionsWithMetricPercentage"));
-          const sessions = item.fields.find(field => field.key.endsWith("-sessionsCount"));
+          const display = clarityDisplay(item);
           return <section className="sa-clarity-item" key={item.key}>
             <span className="sa-clarity-kicker">COMPORTEMENT UTILISATEUR</span>
             <h3>{item.title}</h3>
             <p className="sa-clarity-description">{item.detail}</p>
-            <strong className="sa-clarity-primary">{percentage ? `${percentage.value} %` : "—"}</strong>
-            <span className="sa-clarity-subtitle">Sessions concernées{sessions ? ` · ${sessions.value} session(s) analysée(s)` : ""}</span>
+            <strong className="sa-clarity-primary">{display.primary}</strong>
+            <span className="sa-clarity-subtitle">{display.subtitle}</span>
             <details className="sa-clarity-details"><summary>Voir les valeurs détaillées</summary>
               <dl>{item.fields.map(field => <div key={field.key}><dt>{field.label}</dt><dd>{field.value}</dd></div>)}</dl>
             </details>
