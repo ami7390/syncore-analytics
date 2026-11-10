@@ -230,10 +230,26 @@ export default function IntegrationsDashboard() {
 
     <div className="sa-toolbar">
       <label className="sa-field"><span>Site supervisé</span><select value={siteId} onChange={e => setSiteId(e.target.value)} disabled={sites.length === 0}>{sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-       <label className="sa-field"><span>Période d’analyse</span><select
-  value={days}
-  onChange={e => setDays(Number(e.target.value))}
-  disabled={provider === "clarity"}
+       <label className="sa-field">
+  <span>Période d’analyse</span>
+  <select
+    value={days}
+    onChange={e => setDays(Number(e.target.value))}
+    disabled={provider === "clarity"}
+  >
+    {provider === "clarity" ? (
+      <option value={days}>
+        3 derniers jours (API Clarity)
+      </option>
+    ) : (
+      <>
+        <option value={7}>7 derniers jours</option>
+        <option value={30}>30 derniers jours</option>
+        <option value={90}>90 derniers jours</option>
+      </>
+    )}
+  </select>
+</label>
       <button type="button" className="sa-refresh" onClick={() => setReload(v => v + 1)} disabled={loading || !siteId}><span aria-hidden="true">↻</span> {loading ? "Actualisation…" : "Actualiser les données"}</button>
     </div>
 

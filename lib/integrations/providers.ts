@@ -112,4 +112,4 @@ export async function clarity(token: string) {
 
   return response.json();
 }
-}
+
