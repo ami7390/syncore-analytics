@@ -61,6 +61,9 @@ const clarityFieldNames: Record<string, string> = {
   averageScrollDepth: "Profondeur moyenne de défilement",
   totalTime: "Temps total",
   activeTime: "Temps actif",
+  name: "Nom",
+  url: "URL",
+  visitsCount: "Visites",
 };
 type ClarityField = { label: string; key: string; value: string; raw: unknown };
 type ClaritySection = { key: string; metricName: string; title: string; detail: string; fields: ClarityField[] };
@@ -91,7 +94,21 @@ function clarityDisplay(section: ClaritySection): { primary: string; subtitle: s
     primary: available("activeTime") ? value("activeTime")! : available("totalTime") ? value("totalTime")! : "—",
     subtitle: available("activeTime") ? "Temps actif (unité fournie par Clarity)" : "Temps total (unité fournie par Clarity)",
   };
-  return { primary: "—", subtitle: "Voir les valeurs détaillées" };
+  const breakdownMetrics = ["Browser", "Device", "OS", "Country", "PageTitle", "ReferrerUrl", "PopularPages"];
+  if (breakdownMetrics.includes(section.metricName)) {
+    const countKey = section.metricName === "PopularPages" ? "visitsCount" : "sessionsCount";
+    const entries = section.fields.filter(item => item.key.endsWith(`-${countKey}`) && numeric(item.raw) !== null);
+    const total = entries.reduce((sum, item) => sum + (numeric(item.raw) ?? 0), 0);
+    const labelField = section.metricName === "PopularPages" ? "url" : "name";
+    const first = section.fields.find(item => item.key === `0-${labelField}`);
+    return {
+      primary: entries.length ? formatNumber(total) : "—",
+      subtitle: entries.length
+        ? `${section.metricName === "PopularPages" ? "Visites" : "Sessions"} réparties · ${entries.length} catégorie(s)${first?.value && first.value !== "—" ? ` · ${first.value}` : ""}`
+        : "Répartition indisponible",
+    };
+  }
+  return { primary: "—", subtitle: "Données indisponibles" };
 }
 function claritySections(data: unknown): ClaritySection[] {
   const sections = Array.isArray(data) ? data : asArray(asObject(data)?.data);
