@@ -230,7 +230,10 @@ export default function IntegrationsDashboard() {
 
     <div className="sa-toolbar">
       <label className="sa-field"><span>Site supervisé</span><select value={siteId} onChange={e => setSiteId(e.target.value)} disabled={sites.length === 0}>{sites.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-      <label className="sa-field"><span>Période d’analyse</span><select value={days} onChange={e => setDays(Number(e.target.value))}><option value={7}>7 derniers jours</option><option value={30}>30 derniers jours</option><option value={90}>90 derniers jours</option></select></label>
+       <label className="sa-field"><span>Période d’analyse</span><select
+  value={days}
+  onChange={e => setDays(Number(e.target.value))}
+  disabled={provider === "clarity"}
       <button type="button" className="sa-refresh" onClick={() => setReload(v => v + 1)} disabled={loading || !siteId}><span aria-hidden="true">↻</span> {loading ? "Actualisation…" : "Actualiser les données"}</button>
     </div>
 
@@ -238,9 +241,11 @@ export default function IntegrationsDashboard() {
       {providers.map(p => <button type="button" key={p.id} className={`sa-tab ${provider === p.id ? "sa-tab-active" : ""}`} onClick={() => setProvider(p.id)} aria-pressed={provider === p.id}>{p.short}</button>)}
     </div>
 
-    <div className="sa-section-heading"><div><span className="sa-section-kicker">TABLEAU DE BORD</span><h2>{current.label}</h2><p>{current.description}</p></div><span className="sa-period-badge">{days} jours</span></div>
+    <div className="sa-section-heading"><div><span className="sa-section-kicker">TABLEAU DE BORD</span><h2>{current.label}</h2><p>{current.description}</p></div></div>
 
-    {siteError && <EmptyState title="Sites indisponibles" message={siteError} />}
+    {siteError && <EmptyState title="Sites indisponibles" message={siteError} />}<span className="sa-period-badge">
+  {provider === "clarity" ? "3 derniers jours" : `${days} jours`}
+</span>
     {!siteError && sites.length === 0 && <EmptyState title="Aucun site accessible" message="Aucun site autorisé n’est disponible pour le moment." />}
     {loading && <div className="sa-loading" role="status"><span className="sa-spinner" /> Récupération des indicateurs en cours…</div>}
     {!loading && error && <EmptyState title="Données indisponibles" message={`${error} Aucun chiffre n’est affiché à la place de données non récupérées.`} />}

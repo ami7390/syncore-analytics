@@ -94,7 +94,22 @@ export async function searchConsole(siteUrl: string, days: number) {
   return { daily: (daily as { rows?: unknown[] }).rows ?? [], queries: (queries as { rows?: unknown[] }).rows ?? [] };
 }
 export async function clarity(token: string) {
-  const response = await fetch("https://www.clarity.ms/export-data/api/v1/project-live-insights", { headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, signal: AbortSignal.timeout(18000), cache: "no-store" });
-  if (!response.ok) throw new Error(`Clarity a refusé la requête (${response.status})`);
+  const url =
+    "https://www.clarity.ms/export-data/api/v1/project-live-insights?numOfDays=3";
+
+  const response = await fetch(url, {
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    signal: AbortSignal.timeout(18000),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Clarity a refusé la requête (${response.status})`);
+  }
+
   return response.json();
+}
 }
