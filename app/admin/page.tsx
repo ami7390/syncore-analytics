@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireAccess } from "@/lib/access";
 import Logout from "@/components/logout";
-import { Activity, FolderKanban, Users, NotebookPen, ArrowUpRight } from "lucide-react";
+import { Activity, FolderKanban, Users, NotebookPen, CalendarDays, ArrowUpRight } from "lucide-react";
 export const dynamic = "force-dynamic";
 export default async function Admin() {
   const { user, role } = await requireAccess();
@@ -10,6 +10,7 @@ export default async function Admin() {
   const roleLabel = isOwner ? "Admin principal" : role === "director" ? "Directeur" : "Administrateur";
   const cards = [
     ...(isOwner ? [{ href: "/admin/utilisateurs", title: "Gestion des utilisateurs", description: "Gérer les comptes, les rôles et les autorisations de la plateforme.", icon: Users, action: "Gérer les utilisateurs" }, { href: "/admin/journal", title: "Journal des projets", description: "Suivre les interventions, corrections et améliorations réellement effectuées.", icon: NotebookPen, action: "Ouvrir le journal" }] : []),
+    ...(isOwner ? [{ href: "/admin/rapports-quotidiens", title: "Rapports quotidiens", description: "Consulter les bilans automatiques et les améliorations prioritaires par projet.", icon: CalendarDays, action: "Voir les rapports" }] : []),
     { href: "/admin/sites", title: "Sites supervisés", description: isOwner ? "Ajouter des projets et attribuer les sites aux administrateurs." : role === "director" ? "Consulter les projets supervisés." : "Consulter les projets qui vous sont attribués.", icon: FolderKanban, action: role === "director" ? "Consulter les sites" : "Gérer les sites" },
     { href: "/admin/integrations", title: "Analyses et intégrations", description: "Suivre les données Google Analytics 4, Search Console et Microsoft Clarity.", icon: Activity, action: "Voir les analyses" },
   ];
