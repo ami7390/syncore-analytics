@@ -189,6 +189,14 @@ export default async function Admin() {
           </section>
         )}
 
+        {isOwner && (
+          <section style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 20, background: "var(--card)" }}>
+            <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Journal des projets</h2>
+            <p className="muted" style={{ margin: "0 0 16px", fontSize: 14 }}>Enregistrez les corrections, améliorations et déploiements pour préparer les futurs rapports.</p>
+            <Link href="/admin/journal" className="btn" style={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>Ouvrir le journal des projets →</Link>
+          </section>
+        )}
+
         {/* Sites supervisés : droits appliqués par les API */}
         <section style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 20, background: "var(--card)" }}>
           <h2 style={{ margin: "0 0 8px", fontSize: 18 }}>Gestion des sites</h2>
