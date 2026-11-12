@@ -8,8 +8,22 @@ export function siteConfig(siteId: string): SiteConfig {
   try { data = JSON.parse(raw); } catch { throw new Error("SYNCORE_SITE_INTEGRATIONS contient un JSON invalide"); }
   if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("Configuration des intégrations invalide");
   const record = data as Record<string, unknown>;
-  const entry = record[siteId];
-  return entry && typeof entry === "object" && !Array.isArray(entry) ? entry as SiteConfig : {};
+ const entry = record[siteId];
+
+const config: SiteConfig =
+  entry && typeof entry === "object" && !Array.isArray(entry)
+    ? { ...(entry as SiteConfig) }
+    : {};
+
+if (siteId === "b0e57be8-075a-413e-8c8e-27e6f15e1040") {
+  const propertyUrl = process.env.SYNCORE_REINA_GSC_PROPERTY_URL;
+
+  if (propertyUrl) {
+    config.searchConsoleSiteUrl = propertyUrl;
+  }
+}
+
+return config;
 }
 function base64url(value: string | Buffer) { return Buffer.from(value).toString("base64url"); }
 async function googleToken(scopes: string[]) {
@@ -80,7 +94,22 @@ export async function searchConsole(siteUrl: string, days: number) {
   return { daily: (daily as { rows?: unknown[] }).rows ?? [], queries: (queries as { rows?: unknown[] }).rows ?? [] };
 }
 export async function clarity(token: string) {
-  const response = await fetch("https://www.clarity.ms/export-data/api/v1/project-live-insights", { headers: { authorization: `Bearer ${token}`, "content-type": "application/json" }, signal: AbortSignal.timeout(18000), cache: "no-store" });
-  if (!response.ok) throw new Error(`Clarity a refusé la requête (${response.status})`);
+  const url =
+    "https://www.clarity.ms/export-data/api/v1/project-live-insights?numOfDays=3";
+
+  const response = await fetch(url, {
+    headers: {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    signal: AbortSignal.timeout(18000),
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Clarity a refusé la requête (${response.status})`);
+  }
+
   return response.json();
 }
+
