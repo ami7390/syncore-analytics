@@ -1,7 +1,7 @@
 name: Syncore Daily Reports
 on:
   schedule:
-    - cron: '45 23 * * *'
+    - cron: '17 5 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,7 +18,7 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci
-      - name: Generate private daily reports
+      - name: Generate and repair private daily reports
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
