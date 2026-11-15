@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Identifiants invalides." }, { status: 400 });
   }
   const { url, key } = supabasePublicConfig();
-  const response = NextResponse.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
+  const response = NextResponse.json({ ok: true, role: "admin" }, { headers: { "Cache-Control": "no-store" } });
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() { return request.cookies.getAll(); },
@@ -23,7 +23,16 @@ export async function POST(request: NextRequest) {
       },
     },
   });
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data: signIn, error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) return NextResponse.json({ error: "Identifiants invalides ou compte non autorisé." }, { status: 401, headers: { "Cache-Control": "no-store" } });
-  return response;
+  if (!signIn.user) return NextResponse.json({ error: "Compte non autorisé." }, { status: 403 });
+  const { data: member, error: roleError } = await supabase.from("admin_users")
+    .select("role,active").eq("user_id", signIn.user.id).maybeSingle();
+  if (roleError || !member || member.active !== true || !["owner", "admin", "director"].includes(member.role)) {
+    return NextResponse.json({ error: "Compte non autorisé." }, { status: 403, headers: { "Cache-Control": "no-store" } });
+  }
+  // Preserve the session cookies already set on the response.
+  const result = NextResponse.json({ ok: true, role: member.role }, { headers: { "Cache-Control": "no-store" } });
+  response.cookies.getAll().forEach(cookie => result.cookies.set(cookie));
+  return result;
 }
