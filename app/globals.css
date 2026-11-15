@@ -101,3 +101,29 @@ html[data-theme="dark"] main :is(.panel,article,section) > [style*="background: 
 .admin-landing{display:grid;gap:22px}.admin-head{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap}.admin-head h1{margin:0 0 9px;font-size:clamp(26px,3vw,36px);letter-spacing:-1px}.admin-eyebrow{font-size:11px;letter-spacing:1.7px;font-weight:800;color:var(--green);text-transform:uppercase}.admin-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}.admin-card{padding:24px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:var(--shadow);display:grid;gap:13px}.admin-card h2{font-size:18px;margin:0}.admin-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}.admin-card-icon{display:grid;place-items:center;width:43px;height:43px;border-radius:13px;background:var(--soft);color:var(--green)}.admin-card .btn{justify-self:start;margin-top:5px}.admin-signout{display:flex;justify-content:flex-end;padding-top:10px;border-top:1px solid var(--line)}
 @media(max-width:1050px){.topin{flex-wrap:wrap;padding-top:12px;padding-bottom:12px}.nav{order:3;width:100%;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap}.nav a{white-space:nowrap}.top-actions{margin-left:auto}}
 @media(max-width:680px){.admin-cards{grid-template-columns:1fr}.admin-card{padding:19px}.topin{gap:9px}.brand{font-size:16px}.theme-toggle span{display:none}.theme-toggle{width:39px;padding:8px}.footer-inner{justify-content:center;text-align:center}.hero{padding-top:54px}}
+
+/* Director dashboard: scoped additions; existing admin styles remain unchanged. */
+.director-dashboard{display:grid;gap:22px}
+.director-dashboard .admin-head h1{margin:0 0 9px;font-size:clamp(26px,3vw,36px);letter-spacing:-1px}
+.director-dashboard .admin-head p.muted{margin:0}
+.director-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.director-kpi{padding:21px;display:grid;gap:17px}
+.director-kpi-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;color:var(--muted);font-size:12px;font-weight:700}
+.director-kpi-top svg{color:var(--green);flex-shrink:0}
+.director-kpi strong{font-size:clamp(24px,3vw,35px);letter-spacing:-1px;color:var(--ink)}
+.director-section-heading{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px}
+.director-section-heading h2{margin:0;font-size:19px}
+.director-section-heading p{margin:4px 0 0;font-size:12px}
+.director-legend{display:flex;align-items:center;gap:17px;font-size:12px;color:var(--muted)}
+.director-legend span{display:inline-flex;align-items:center;gap:7px}
+.director-dot{display:inline-block;width:9px;height:9px;border-radius:50%}
+.director-mobile{background:#426cf2}.director-desktop{background:#18a68d}
+.director-svg{width:100%;height:auto;display:block}
+.director-empty{padding:50px 0;text-align:center}
+.director-table-scroll{overflow-x:auto}
+.director-projects table{width:100%;text-align:left}
+.director-projects th,.director-projects td{padding:13px 12px;white-space:nowrap}
+.director-projects td small{display:block;font-size:11px;color:var(--muted);white-space:normal;overflow-wrap:anywhere}
+.director-dashboard .admin-card .btn{display:inline-flex;align-items:center;gap:8px}
+@media(max-width:900px){.director-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:500px){.director-kpis{gap:10px}.director-kpi{padding:15px}.director-kpi strong{font-size:25px}.director-dashboard{gap:16px}}

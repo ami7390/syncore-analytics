@@ -26,7 +26,7 @@ jobs:
       - uses: browser-actions/setup-chrome@v1
       - run: npm ci
       - run: npm install --no-save lighthouse@12
-      - name: Schedule active sites (once per 24h)
+      - name: Schedule active sites (once per UTC day)
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

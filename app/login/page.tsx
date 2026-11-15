@@ -24,7 +24,8 @@ export default function Login() {
         setError("Identifiants invalides ou compte non autorisé.");
         return;
       }
-      router.replace("/admin");
+      const result = await response.json();
+      router.replace(result.role === "director" ? "/directeur" : "/admin");
       router.refresh();
     } catch {
       setError("Connexion impossible. Réessayez.");
