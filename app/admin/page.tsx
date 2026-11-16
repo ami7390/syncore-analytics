@@ -71,7 +71,18 @@ export default async function Admin() {
           },
         ]
       : []),
-    ...(isOwner ? [{ href: "/admin/rapports-mensuels", title: "Rapports mensuels PDF", description: "Préparer, consulter et publier les bilans mensuels pour la Direction.", icon: CalendarDays, action: "Gérer les rapports mensuels" }] : []),
+    ...(isOwner
+      ? [
+          {
+            href: "/admin/rapports-mensuels",
+            title: "Rapports mensuels PDF",
+            description:
+              "Préparer, consulter et publier les bilans mensuels pour la Direction.",
+            icon: CalendarDays,
+            action: "Gérer les rapports mensuels",
+          },
+        ]
+      : []),
     {
       href: "/admin/sites",
       title: "Sites supervisés",

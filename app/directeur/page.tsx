@@ -50,8 +50,15 @@ export default async function DirectorPage() {
 
   return (
     <>
-      <DirectorDashboard email={access.user.email ?? "Directeur"} sites={sites ?? []} reports={reports ?? []} />
-      <main className="wrap"><MonthlyReports owner={false} /></main>
+      <DirectorDashboard
+        email={access.user.email ?? "Directeur"}
+        sites={sites ?? []}
+        reports={reports ?? []}
+      />
+
+      <main className="wrap">
+        <MonthlyReports owner={false} />
+      </main>
     </>
   );
 }
