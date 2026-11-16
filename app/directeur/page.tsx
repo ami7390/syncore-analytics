@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { requireAccess } from "@/lib/access";
 import { adminService } from "@/lib/admin-service";
 import DirectorDashboard from "@/components/director-dashboard";
+import MonthlyReports from "@/components/monthly-reports";
 
 export const dynamic = "force-dynamic";
 
@@ -48,10 +49,16 @@ export default async function DirectorPage() {
   }
 
   return (
-    <DirectorDashboard
-      email={access.user.email ?? "Directeur"}
-      sites={sites ?? []}
-      reports={reports ?? []}
-    />
+    <>
+      <DirectorDashboard
+        email={access.user.email ?? "Directeur"}
+        sites={sites ?? []}
+        reports={reports ?? []}
+      />
+
+      <main className="wrap">
+        <MonthlyReports owner={false} />
+      </main>
+    </>
   );
 }
