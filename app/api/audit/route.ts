@@ -1,7 +1,11 @@
+import { getAccess } from "@/lib/access";
 import { NextRequest,NextResponse } from "next/server";
 import {db,requesterHash,validatePublicUrl} from "@/lib/audit-server";
 export const runtime="nodejs";
 export async function POST(req:NextRequest){
+ const access = await getAccess();
+ if (!access) return NextResponse.json({error:"Connexion requise"},{status:401});
+ if (access.role === "director") return NextResponse.json({error:"Acces refuse"},{status:403});
  try{
   const body=await req.json();
   const url=await validatePublicUrl(body?.url);

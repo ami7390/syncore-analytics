@@ -49,6 +49,14 @@ export async function getAccess() {
     return null;
   }
 
+  // MFA is enabled only after the owner has enrolled and verified a factor.
+  // Set REQUIRE_MFA=true in Vercel only after testing the enrollment flow.
+  if (process.env.REQUIRE_MFA === "true") {
+    const { data: assurance, error: assuranceError } =
+      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    if (assuranceError || assurance?.currentLevel !== "aal2") return null;
+  }
+
   return {
     user,
     role: data.role as Role,

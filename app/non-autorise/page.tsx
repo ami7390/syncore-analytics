@@ -1,1 +1,8 @@
-export default function Unauthorized(){return <main className="wrap section"><div className="panel"><h1>Accès non autorisé</h1><p>Ce compte ne possède pas le rôle administrateur. Contactez votre administrateur.</p><a className="btn" href="/">Retour à l'accueil</a></div></main>}
+import Link from "next/link";
+export default function Unauthorized() {
+  return <main className="private-auth-card">
+    <h1>Accès non autorisé</h1>
+    <p className="private-auth-subtitle">Ce compte ne dispose pas des autorisations nécessaires. Contactez votre administrateur.</p>
+    <Link className="btn private-auth-submit" href="/login">Retour à la connexion</Link>
+  </main>;
+}

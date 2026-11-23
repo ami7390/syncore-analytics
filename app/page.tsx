@@ -1,2 +1,9 @@
-import Analyzer from "@/components/analyzer";
-export default function Home(){return <main className="wrap"><section className="hero"><div className="chip" style={{display:"inline-block",marginBottom:20}}>Performance web · Analyse gratuite</div><h1>Comprenez la performance<br/>de votre site web.</h1><p>Analysez la vitesse, l'accessibilité et le SEO technique de votre site grâce aux mesures réelles de Google PageSpeed Insights.</p></section><section className="section"><Analyzer/></section></main>}
+import { redirect } from "next/navigation";
+import { getAccess } from "@/lib/access";
+
+export const dynamic = "force-dynamic";
+export default async function Home() {
+  const access = await getAccess();
+  if (!access) redirect("/login");
+  redirect(access.role === "director" ? "/directeur" : "/admin");
+}

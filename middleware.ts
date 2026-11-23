@@ -16,8 +16,22 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  const path = request.nextUrl.pathname;
+  const isPrivate = path.startsWith("/admin") || path.startsWith("/directeur") ||
+    path.startsWith("/api/audit") || path.startsWith("/api/analyze");
+  if (isPrivate && !user) {
+    if (path.startsWith("/api/")) {
+      return NextResponse.json({ error: "Authentification requise" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    }
+    const login = request.nextUrl.clone();
+    login.pathname = "/login";
+    login.search = "";
+    const redirect = NextResponse.redirect(login);
+    response.cookies.getAll().forEach(cookie => redirect.cookies.set(cookie));
+    return redirect;
+  }
   return response;
 }
 
-export const config = { matcher: ["/admin/:path*", "/login"] };
+export const config = { matcher: ["/admin/:path*", "/directeur/:path*", "/login", "/api/audit/:path*", "/api/analyze/:path*"] };

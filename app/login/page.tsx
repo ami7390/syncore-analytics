@@ -25,7 +25,7 @@ export default function Login() {
         return;
       }
       const result = await response.json();
-      router.replace(result.role === "director" ? "/directeur" : "/admin");
+      router.replace(result.needsMfa ? "/mfa" : result.role === "director" ? "/directeur" : "/admin");
       router.refresh();
     } catch {
       setError("Connexion impossible. Réessayez.");

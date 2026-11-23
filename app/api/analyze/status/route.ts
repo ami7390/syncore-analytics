@@ -1,3 +1,4 @@
+import { getAccess } from "@/lib/access";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import type { AuditResult } from "@/lib/pagespeed";
@@ -6,6 +7,8 @@ export const runtime = "nodejs";
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export async function GET(req: NextRequest) {
+  const access = await getAccess();
+  if (!access) return NextResponse.json({ error: "Connexion requise." }, { status: 401 });
   const id = new URL(req.url).searchParams.get("id") || "";
   if (!uuid.test(id)) return NextResponse.json({ error: "Identifiant invalide." }, { status: 400 });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

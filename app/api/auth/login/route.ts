@@ -31,8 +31,12 @@ export async function POST(request: NextRequest) {
   if (roleError || !member || member.active !== true || !["owner", "admin", "director"].includes(member.role)) {
     return NextResponse.json({ error: "Compte non autorisé." }, { status: 403, headers: { "Cache-Control": "no-store" } });
   }
+  const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (assuranceError) return NextResponse.json({ error: "Verification de securite indisponible." }, { status: 503 });
+  const mfaRequired = process.env.REQUIRE_MFA === "true";
+  const needsMfa = mfaRequired && assurance?.currentLevel !== "aal2";
   // Preserve the session cookies already set on the response.
-  const result = NextResponse.json({ ok: true, role: member.role }, { headers: { "Cache-Control": "no-store" } });
+  const result = NextResponse.json({ ok: true, role: member.role, needsMfa }, { headers: { "Cache-Control": "no-store" } });
   response.cookies.getAll().forEach(cookie => result.cookies.set(cookie));
   return result;
 }

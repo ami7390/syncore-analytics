@@ -127,3 +127,16 @@ html[data-theme="dark"] main :is(.panel,article,section) > [style*="background: 
 .director-dashboard .admin-card .btn{display:inline-flex;align-items:center;gap:8px}
 @media(max-width:900px){.director-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:500px){.director-kpis{gap:10px}.director-kpi{padding:15px}.director-kpi strong{font-size:25px}.director-dashboard{gap:16px}}
+
+
+/* Connexion privée — styles isolés, sans impact sur les tableaux de bord. */
+.private-auth-page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.private-auth-card{width:100%;max-width:370px;padding:30px 28px;border:1px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 18px 50px rgba(20,46,84,.08);text-align:left}
+.private-auth-brand{width:42px;height:42px;display:grid;place-items:center;border-radius:12px;background:#eaf1ff;color:#3267e9;font-size:27px;margin:0 auto 14px}
+.private-auth-card h1{text-align:center;font-size:22px;letter-spacing:-.6px;margin:0 0 3px;font-weight:800}
+.private-auth-subtitle{text-align:center;color:var(--muted);font-size:13px;margin:0 0 24px}
+.private-auth-card form{display:flex;flex-direction:column;gap:8px}
+.private-auth-card form label{font-size:12px;font-weight:700;margin-top:7px}
+.private-auth-card .field{width:100%;min-height:42px;border-radius:9px}
+.private-auth-submit{width:100%;display:flex;align-items:center;justify-content:center;margin-top:13px;min-height:43px;text-align:center}
+.private-auth-note{text-align:center;font-size:11px;color:var(--muted);margin:21px 0 0}

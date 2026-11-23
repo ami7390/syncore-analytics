@@ -1,7 +1,10 @@
+import { getAccess } from "@/lib/access";
 import {NextResponse} from "next/server";
 import {db} from "@/lib/audit-server";
 export const runtime="nodejs";
 export async function GET(_req:Request,{params}:{params:Promise<{id:string}>}){
+ const access = await getAccess();
+ if (!access) return NextResponse.json({error:"Connexion requise"},{status:401});
  const {id}=await params;
  if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))return NextResponse.json({error:"Identifiant invalide"},{status:400});
  try{
