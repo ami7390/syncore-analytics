@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAccess } from "@/lib/access";
 import { adminService } from "@/lib/admin-service";
+import { recordSecurityEvent } from "@/lib/security-events";
 export const runtime = "nodejs";
 const noStore = { "Cache-Control": "no-store" };
 async function authorized() { const a = await getAccess(); return a?.role === "owner" ? a : null; }
 export async function POST(req: NextRequest) {
-  if (!await authorized()) return NextResponse.json({ error: "Accès refusé" }, { status: 403, headers: noStore });
+  const actor = await authorized();
+  if (!actor) return NextResponse.json({ error: "Accès refusé" }, { status: 403, headers: noStore });
   let input: unknown;
   try { input = await req.json(); } catch { return NextResponse.json({ error: "JSON invalide" }, { status: 400 }); }
   if (!input || typeof input !== "object") return NextResponse.json({ error: "Données invalides" }, { status: 400 });
@@ -23,6 +25,7 @@ export async function POST(req: NextRequest) {
       if (rollbackError) console.error("Rollback utilisateur échoué", data.user.id);
       return NextResponse.json({ error: "Attribution du rôle impossible. Réessayez." }, { status: 500 });
     }
+    await recordSecurityEvent({ type: "user_created", actorUserId: actor.user.id, subjectUserId: data.user.id, details: { role } });
     return NextResponse.json({ user: { user_id: data.user.id, email: data.user.email, role, active: true } }, { status: 201, headers: noStore });
   } catch (e) { console.error("Create user failed", e); return NextResponse.json({ error: "Erreur serveur" }, { status: 500 }); }
 }
@@ -40,6 +43,7 @@ export async function PATCH(req: NextRequest) {
     if (lookupError || !target || target.role === "owner") return NextResponse.json({ error: "Compte non modifiable" }, { status: 403 });
     const { error } = await db.from("admin_users").update({ role, active, updated_at: new Date().toISOString() }).eq("user_id", userId).neq("role", "owner");
     if (error) throw error;
+    await recordSecurityEvent({ type: "user_updated", actorUserId: actor.user.id, subjectUserId: userId, details: { role, active } });
     return NextResponse.json({ ok: true }, { headers: noStore });
   } catch (e) { console.error("Update user failed", e); return NextResponse.json({ error: "Erreur serveur" }, { status: 500 }); }
 }

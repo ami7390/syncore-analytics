@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabase/server";
+import { recordSecurityEvent } from "@/lib/security-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ async function session() {
   if (error || !user) return null;
   const { data: member } = await supabase.from("admin_users").select("active,role").eq("user_id", user.id).maybeSingle();
   if (!member?.active || !["owner", "admin", "director"].includes(member.role)) return null;
-  return { supabase, role: member.role };
+  return { supabase, role: member.role, userId: user.id };
 }
 
 export async function GET() {
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
     if (challengeError || !challenge) return reply({ error: "Verification impossible" }, 400);
     const { error } = await actor.supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code });
     if (error) return reply({ error: "Code incorrect ou expire" }, 401);
+    await recordSecurityEvent({ type: "mfa_verified", actorUserId: actor.userId });
     return reply({ ok: true, role: actor.role });
   }
   return reply({ error: "Action inconnue" }, 400);
