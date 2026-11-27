@@ -1,10 +1,11 @@
+import { currentDevice, devicesRequired } from "@/lib/devices";
 
 import { redirect } from "next/navigation";
 import { supabaseServer } from "@/lib/supabase/server";
 
 export type Role = "owner" | "admin" | "director";
 
-export async function getAccess() {
+export async function getIdentity() {
   const supabase = await supabaseServer();
 
   const {
@@ -51,7 +52,7 @@ export async function getAccess() {
 
   // MFA is enabled only after the owner has enrolled and verified a factor.
   // Set REQUIRE_MFA=true in Vercel only after testing the enrollment flow.
-  if (process.env.REQUIRE_MFA === "true") {
+  if ((process.env.REQUIRE_MFA === "true" || devicesRequired())) {
     const { data: assurance, error: assuranceError } =
       await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     if (assuranceError || assurance?.currentLevel !== "aal2") return null;
@@ -63,10 +64,18 @@ export async function getAccess() {
   };
 }
 
+export async function getAccess() {
+  const identity = await getIdentity();
+  if (!identity || !devicesRequired()) return identity;
+  try { return (await currentDevice(identity.user.id))?.status === "approved" ? identity : null; }
+  catch { return null; }
+}
+
 export async function requireAccess() {
   const access = await getAccess();
 
   if (!access) {
+    if (devicesRequired() && await getIdentity()) redirect("/appareil");
     redirect("/non-autorise");
   }
 

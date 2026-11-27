@@ -3,7 +3,8 @@ import { adminService } from "@/lib/admin-service";
 export type SecurityEventType =
   | "mfa_verified"
   | "user_created"
-  | "user_updated";
+  | "user_updated"
+  | "device_decision";
 
 // Server-side only. Never include passwords, MFA codes, secrets or tokens.
 export async function recordSecurityEvent(event: {

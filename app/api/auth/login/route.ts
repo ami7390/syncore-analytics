@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
   const { data: assurance, error: assuranceError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
   if (assuranceError) return NextResponse.json({ error: "Verification de securite indisponible." }, { status: 503 });
-  const mfaRequired = process.env.REQUIRE_MFA === "true";
+  const mfaRequired = (process.env.REQUIRE_MFA === "true" || process.env.REQUIRE_DEVICE_APPROVAL === "true");
   const needsMfa = mfaRequired && assurance?.currentLevel !== "aal2";
   // Preserve the session cookies already set on the response.
   const result = NextResponse.json({ ok: true, role: member.role, needsMfa }, { headers: { "Cache-Control": "no-store" } });

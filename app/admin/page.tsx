@@ -27,6 +27,7 @@ export default async function Admin() {
   const roleLabel = isOwner ? "Admin principal" : "Administrateur";
 
   const cards = [
+    ...(isOwner && process.env.REQUIRE_DEVICE_APPROVAL === "true" ? [{ href: "/admin/appareils", title: "Appareils autorisés", description: "Approuver ou révoquer les navigateurs.", icon: Users, action: "Gérer les appareils" }] : []),
     ...(isOwner
       ? [
           {

@@ -22,7 +22,7 @@ export async function GET() {
     actor.supabase.auth.mfa.listFactors(), actor.supabase.auth.mfa.getAuthenticatorAssuranceLevel(),
   ]);
   if (factorError || assuranceError) return reply({ error: "MFA indisponible" }, 503);
-  return reply({ role: actor.role, currentLevel: assurance?.currentLevel, factors: (factors?.totp ?? []).filter(f => f.status === "verified").map(f => ({ id: f.id, friendlyName: f.friendly_name })) });
+  return reply({ deviceRequired: process.env.REQUIRE_DEVICE_APPROVAL === "true", role: actor.role, currentLevel: assurance?.currentLevel, factors: (factors?.totp ?? []).filter(f => f.status === "verified").map(f => ({ id: f.id, friendlyName: f.friendly_name })) });
 }
 
 export async function POST(req: NextRequest) {
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     const { error } = await actor.supabase.auth.mfa.verify({ factorId, challengeId: challenge.id, code });
     if (error) return reply({ error: "Code incorrect ou expire" }, 401);
     await recordSecurityEvent({ type: "mfa_verified", actorUserId: actor.userId });
-    return reply({ ok: true, role: actor.role });
+    return reply({ ok: true, deviceRequired: process.env.REQUIRE_DEVICE_APPROVAL === "true", role: actor.role });
   }
   return reply({ error: "Action inconnue" }, 400);
 }

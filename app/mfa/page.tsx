@@ -17,7 +17,7 @@ export default function MfaPage() {
       if (!r.ok) { router.replace("/login"); return; }
       const data = await r.json();
       setRole(data.role);
-      if (data.currentLevel === "aal2") { router.replace(data.role === "director" ? "/directeur" : "/admin"); return; }
+      if (data.currentLevel === "aal2") { router.replace(data.deviceRequired ? "/appareil" : data.role === "director" ? "/directeur" : "/admin"); return; }
       if (data.factors?.length) setFactorId(data.factors[0].id);
       setReady(true);
     }).catch(() => setError("Impossible de charger la verification."));
@@ -38,7 +38,7 @@ export default function MfaPage() {
       const res = await fetch("/api/auth/mfa", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "verify", factorId, code }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      router.replace(role === "director" ? "/directeur" : "/admin"); router.refresh();
+      router.replace(data.deviceRequired ? "/appareil" : role === "director" ? "/directeur" : "/admin"); router.refresh();
     } catch (e) { setError(e instanceof Error ? e.message : "Code invalide"); }
     finally { setBusy(false); }
   }
